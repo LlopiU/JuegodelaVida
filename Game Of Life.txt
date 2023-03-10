@@ -1,0 +1,91 @@
+The program is written as a Morph, which is the name of an object on the screen. Here's the definition:
+
+Morph subclass: #GameOfLifeMorph
+        instanceVariableNames: 'columns rows content mouseInteraction nextGrid'
+        classVariableNames: ''
+        category: 'GameOfLife'
+Drawing the matrix with the contents of the game is very simple:
+
+drawing
+drawOn: canvas
+     "Draws the game of life widget with the current state"
+     | cellWidth cellHeight rectangle  cellColor cellValue|
+      
+     cellWidth :=   (self width) / columns.
+     cellHeight :=   (self height) / rows.
+     1 to: rows do: [ :row |
+          1 to: columns do: [ :column |
+                 cellValue := (content at: row at: column).
+                 cellColor := cellValue = 1 ifTrue: [ Color black ] ifFalse: [ Color white  ].
+                 rectangle := Rectangle left: (self bounds left) + ((column - 1)*cellWidth) 
+                                        right: (self bounds left) + ((column - 1)*cellWidth) + cellWidth
+                                        top: (self bounds top) + ((row - 1)*cellHeight )
+                                         bottom: (self bounds top) + ((row - 1)*cellHeight ) + cellHeight.
+         
+                 cellValue = 1 ifTrue: [canvas fillRectangle:  rectangle color:  cellColor]
+                               ifFalse: [canvas frameAndFillRectangle: rectangle 
+                                                   fillColor:  (Color white) 
+                                                   borderWidth: 1 
+                                                   borderColor: (Color black)].
+             ]
+       ].
+       ^self.
+The implementation of the animation part of the program was created using the step and stepTime methods.
+
+stepping and presenter
+step
+      "Verifies the rules of the Game Of Life"
+      | tmp |
+      
+      1 to: rows do:  [ :row | 
+          1 to: columns do:  [ :column |
+              nextGrid at: row at: column put: (self getNextGenerationFor: row column: column).
+          ]
+      ].
+      tmp := content.
+      content := nextGrid.
+      nextGrid := tmp.
+      self changed.
+The following method shows how to get the next generation for a given (row, column) individual.
+
+This method is going to check for the game of life rules.
+
+game of life rules
+getNextGenerationFor: row column: column
+      "Verifies the Game Of Life rules"
+      |topLeft top topRight left right bottomLeft bottomRight bottom neighbors|
+
+      topLeft :=  self getCellValue: (row - 1) column: (column - 1).
+      top := self getCellValue: (row - 1) column: column.
+      left := self getCellValue: row column: (column - 1).
+      right := self getCellValue: row column: (column + 1).
+      topRight := self getCellValue: (row - 1) column: (column + 1).
+      bottomRight := self getCellValue: (row + 1) column: (column + 1).
+      bottom := self getCellValue: (row + 1) column: column.
+      bottomLeft := self getCellValue: (row + 1) column: (column - 1).
+   
+      neighbors := topLeft + top + left + right + topRight + bottomRight + bottom  + bottomLeft.
+
+      ^ ((content at: row at: column) = 1) 
+             ifTrue: [ (neighbors < 2 | (neighbors > 3)) ifTrue: [ 0 ] ifFalse: [ 1 ]  ] 
+             ifFalse: [ (neighbors = 3) ifTrue: [ 1 ] ifFalse: [ 0 ] ].
+The last statement verifies the rules:
+
+A live cell with less than two neighbors dies in the next generation
+A live cell with two or three neighbors survives to the next generation
+A live cell with more than three neighbors dies
+A dead cell with three neighbors becomes alive in the next generation
+To open this Morph into the Pharo environment we can evaluate:
+
+|m|
+m := GameOfLifeMorph rows: 30 columns: 30.
+m width: 300 ;height: 300 ; openInWorld.
+m stopStepping.
+m enableMouseInteraction . 
+To start the execution we can evaluate:
+
+
+GameOfLifeMorph allInstances last startStepping.
+Programming in Pharo is a very interesting experience. This mainly because the development environment is really integrated with the program you are developing. Something that called my attention is how you can define missing code while debugging and without stopping the debugging session.
+
+The code for this experiment can be found here: http://github.com/ldfallas/GameOfLife
